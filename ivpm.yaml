@@ -1,0 +1,60 @@
+
+package:
+  name: zuspec-fe-py
+
+  setup-deps:
+  - ninja
+  - cython
+
+  dep-sets:
+
+  - name: default
+    deps:
+    - name: pytypeworks
+      url: https://github.com/fvutils/pytypeworks.git
+    - name: pyvsc-dataclasses
+      url: https://github.com/vsc-tools/pyvsc-dataclasses.git
+    - name: zuspec-dataclasses
+      url: https://github.com/zuspec/zuspec-dataclasses.git
+    - name: vsc-dm
+      url: https://github.com/vsc-tools/vsc-dm.git
+    - name: vsc-solvers
+      url: https://github.com/vsc-tools/vsc-solvers.git
+    - name: zuspec-arl-dm
+      url: https://github.com/zuspec/zuspec-arl-dm.git
+    - name: zuspec-arl-eval
+      url: https://github.com/zuspec/zuspec-arl-eval.git
+    - name: zuspec-parser
+      url: https://github.com/zuspec/zuspec-parser.git
+    - name: zuspec-fe-parser
+      url: https://github.com/zuspec/zuspec-fe-parser.git
+    - name: ninja
+      src: pypi
+    - name: cython
+      src: pypi
+
+  - name: default-dev
+    deps:
+    - name: zuspec-dataclasses
+      url: https://github.com/zuspec/zuspec-dataclasses.git
+      branch: mballance/refactor
+    - name: Sphinx
+      src: pypi
+    - name: sphinx-argparse
+      src: pypi
+    - name: sphinxcontrib-makedomain
+      src: pypi
+    - name: sphinxcontrib-openapi
+      src: pypi
+    - name: sphinxcontrib-spelling
+      src: pypi
+    - name: sphinx-rtd-theme
+      src: pypi
+    - name: sphinx-jsonschema
+      src: pypi
+    - name: vsc-dm
+      url: https://github.com/vsc-tools/vsc-dm.git
+    - name: zuspec-arl-dm
+      url: https://github.com/zuspec/zuspec-arl-dm.git
+
+

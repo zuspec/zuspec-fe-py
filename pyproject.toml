@@ -1,0 +1,20 @@
+
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zuspec-fe-py"
+version = "0.0.1"
+dependencies = [
+    'vsc-dm',
+    'zuspec-arl-dm',
+]
+authors = [
+    {name = "Matthew Ballance", email = "matt.ballance@gmail.com"},
+]
+description = "Front-end connector between Zuspec dataclasses and the Zuspec IR"
+license = {file = "LICENSE" }
+
+
+

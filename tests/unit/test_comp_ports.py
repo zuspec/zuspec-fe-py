@@ -1,5 +1,6 @@
 import zuspec.dataclasses as zdc
-from zuspec.py.transform_to_arl_dm import TransformToArlDm
+from zuspec.fe.py.transform_to_dm import TransformToDm
+from zuspec.dm import TypeFieldInOut
 
 def test_smoke():
 
@@ -7,17 +8,18 @@ def test_smoke():
     class MyC(zdc.Component):
         pass
 
-    # Create a dummy ARL-DM context
-    from zsp_arl_dm.core import Factory, Context
-    ctxt = Factory.inst().mkContext()
+    from zuspec.dm.impl import Context
+    ctxt = Context()
+
     # Apply the transform
-    t = MyC()
-    arl_comp = TransformToArlDm(ctxt).transform(t)
-    # Register the component with the context before accessing properties
-#    ctxt.addDataTypeStruct(arl_comp)
-    # Check that the ARL-DM component type was created and has the correct name
-    assert arl_comp is not None
-    assert arl_comp.name() == "MyC"
+    comp_dm = TransformToDm(ctxt).transform(MyC)
+
+    assert comp_dm is not None
+    assert comp_dm.name == MyC.__qualname__
+    assert ctxt.findDataTypeStruct(MyC.__qualname__) is comp_dm
+
+#    assert arl_comp is not None
+#    assert arl_comp.name() == "MyC"
 
 
 def test_ports():
@@ -28,21 +30,25 @@ def test_ports():
         reset : zdc.Bit = zdc.input()
         pass
 
-    # Create a dummy ARL-DM context
-    from zsp_arl_dm.core import Factory, Context
-    ctxt = Factory.inst().mkContext()
+    from zuspec.dm.impl import Context
+    ctxt = Context()
+
     # Apply the transform
-    t = MyC()
-    arl_comp = TransformToArlDm(ctxt).transform(t)
-    # Register the component with the context before accessing properties
-#    ctxt.addDataTypeStruct(arl_comp)
-    # Check that the ARL-DM component type was created and has the correct name
-    assert arl_comp is not None
-    assert arl_comp.name() == "MyC"
+    dm_comp = TransformToDm(ctxt).transform(MyC)
+
+    assert dm_comp is not None
+    assert dm_comp.name == MyC.__qualname__
+
+    assert dm_comp.numFields() == 2
+
     # Check for correct number of fields and presence of 'clock' and 'reset'
-    fields = list(arl_comp.getFields())
+    fields = list(dm_comp.fields)
+    for f in dm_comp.fields:
+        assert isinstance(f, TypeFieldInOut)
+        assert not f.isOutput
+
     assert len(fields) == 2
-    field_names = [f.name() for f in fields]
+    field_names = [f.name for f in fields]
     assert "clock" in field_names
     assert "reset" in field_names
 

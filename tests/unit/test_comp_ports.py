@@ -1,5 +1,5 @@
 import zuspec.dataclasses as zdc
-from zuspec.fe.py.transform_to_dm import TransformToDm
+from zuspec.fe.py.transform_to_dm import TransformToDm, Context
 from zuspec.dm import TypeFieldInOut
 
 def test_smoke():
@@ -8,11 +8,11 @@ def test_smoke():
     class MyC(zdc.Component):
         pass
 
-    from zuspec.dm.impl import Context
-    ctxt = Context()
+    import zuspec.dm.impl as dm_impl
+    ctxt = Context(dm_impl.Context())
 
     # Apply the transform
-    comp_dm = TransformToDm(ctxt).transform(MyC)
+    comp_dm = TransformToDm(ctxt=ctxt).transform(MyC)
 
     assert comp_dm is not None
     assert comp_dm.name == MyC.__qualname__
@@ -30,11 +30,11 @@ def test_ports():
         reset : zdc.Bit = zdc.input()
         pass
 
-    from zuspec.dm.impl import Context
-    ctxt = Context()
+    import zuspec.dm.impl as dm_impl
+    ctxt = Context(ctxt=dm_impl.Context())
 
     # Apply the transform
-    dm_comp = TransformToDm(ctxt).transform(MyC)
+    dm_comp = TransformToDm(ctxt=ctxt).transform(MyC)
 
     assert dm_comp is not None
     assert dm_comp.name == MyC.__qualname__

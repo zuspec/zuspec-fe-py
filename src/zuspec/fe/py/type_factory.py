@@ -25,7 +25,7 @@ class TypeFactory(object):
 
     def build(self, t : Any, a : Optional[Any] = None) -> dm.DataType:
         rt : dm.DataType = None
-        if t is zdc.Bit:
+        if issubclass(t, zdc.Bit):
             width = t.W
             rt = self.ctxt().findDataTypeBit(width)
 

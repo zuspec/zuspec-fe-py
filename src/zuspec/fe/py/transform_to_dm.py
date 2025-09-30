@@ -21,9 +21,10 @@ from zuspec.dataclasses.api.visitor import Visitor
 from zuspec.dataclasses.ports import Input, Output
 import zuspec.dm as dm
 from zuspec.dm import (
-    Context, DataTypeComponent
+    Context, DataTypeComponent, Loc
 )
 from .context import Context, StructScope
+from .stmt_factory import StmtFactory
 from .type_factory import TypeFactory
 
 @dc.dataclass
@@ -138,14 +139,46 @@ class TransformToDm(Visitor):
         exec_proc = self.ctxt().mkTypeExecProc(ExecKindT.Body, body)
         self.comp.addExec(exec_proc)
 
+    def visitExecSync(self, e):
+        import inspect
+        import ast
+        from zsp_arl_dm.core import ExecKindT
+
+        import textwrap
+        src = inspect.getsource(e.method)
+        src = textwrap.dedent(src)
+        tree = ast.parse(src)
+
+        scope : StructScope = cast(StructScope, self.ctxt.scope)
+
+        # TODO: Convert lambda expressions to ref expressions
+        clock = None
+        reset = None
+
+        file = e.method.__code__.co_filename
+        line = e.method.__code__.co_firstlineno
+        pos = -1
+        exec = self.ctxt().mkExecSync(
+            clock,
+            reset,
+            loc=Loc(file=file, line=line, ref=e.method)
+        )
+
+        # Process the body 
+        for s_ast in tree.body[0].body:
+            stmt = StmtFactory(self.ctxt).build(s_ast)
+            print("Stmt: %s" % stmt)
+
+        scope.type.addExec(exec)
+
+
+        pass
+
     def visitField(self, f):
         scope : StructScope = cast(StructScope, self.ctxt.scope)
 
-        # file = inspect.getsourcefile(f)
-        # line = inspect.getsourcelines(f)
-        # print("%s: %s:%s" % (f.name, file, line))
+        # TODO: gather binds from fields
 
-        # Detect port fields (Input/Output)
         data_t = TypeFactory(self.ctxt).build(f.type)
 
         if data_t is None:

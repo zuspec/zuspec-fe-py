@@ -29,10 +29,15 @@ class ExprFactory(object):
             pass
         elif isinstance(e, ast.Name):
             return self._buildNameRef(e)
+        elif isinstance(e, ast.Attribute):
+            return self._buildAttrRef(e)
         else:
             raise NotImplementedError("Expression type %s (%s)" % (
                 type(e), str(e)
             ))
+        pass
+
+    def _buildAttrRef(self, e : ast.Attribute) -> dm.TypeExprRef:
         pass
 
     def _buildBinExpr(self, e : ast.BinOp) -> dm.TypeExprBin:

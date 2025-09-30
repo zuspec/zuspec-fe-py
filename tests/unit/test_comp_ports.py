@@ -76,3 +76,41 @@ def test_inout_ports():
         elif f.name() == "b":
             assert isinstance(f, TypeFieldInOut)
             assert f.isInput() is False
+
+def test_ports_visitor():
+    """
+    Variant of test_ports that uses a Visitor subclass to collect and verify
+    the component's ports. The base Visitor does not currently traverse struct/
+    component fields (visitDataTypeStruct is pass). Additionally, the duplicate
+    visitTypeField definition in visitor.py would cause recursion if we tried
+    per-field accept traversal. We therefore collect fields directly in the
+    overridden visitDataTypeComponent.
+    """
+    @zdc.dataclass
+    class MyC(zdc.Component):
+        clock: zdc.Bit = zdc.input()
+        reset: zdc.Bit = zdc.input()
+        pass
+
+    import zuspec.dm.impl as dm_impl
+    from zuspec.dm.visitor import Visitor
+    ctxt = Context(ctxt=dm_impl.Context())
+    dm_comp = TransformToDm(ctxt=ctxt).transform(MyC)
+
+    class CollectPortsVisitor(Visitor):
+        def __init__(self):
+            self.fields = []
+        def visitDataTypeComponent(self, obj):
+            # Directly collect fields; no recursive field.accept calls
+            for f in obj.fields:
+                self.fields.append(f)
+
+    v = CollectPortsVisitor()
+    dm_comp.accept(v)
+
+    assert len(v.fields) == 2
+    names = {f.name for f in v.fields}
+    assert names == {"clock", "reset"}
+    for f in v.fields:
+        assert isinstance(f, TypeFieldInOut)
+        assert not f.isOutput

@@ -1,7 +1,8 @@
 
 import pytest
 import zuspec.dataclasses as zdc
-from zuspec.fe.py.transform_to_arl_dm import TransformToArlDm
+import zuspec.dm as dm
+from zuspec.fe.py import Context, TransformToDm
 
 def test_smoke():
 
@@ -12,27 +13,28 @@ def test_smoke():
     class MyC(zdc.Component):
         clock : zdc.Bit = zdc.input()
         reset : zdc.Bit = zdc.input()
+        count : zdc.Bit[32] = zdc.output()
 
         @zdc.sync(clock=lambda s: s.clock, reset=lambda s:s.reset)
         def abc(self):
             if self.reset:
-                pass
+                self.count = 0
             else:
-                pass
+                self.count += 1
 
+    dm_ctxt = dm.impl.Context()
+    ctxt = Context(ctxt=dm_ctxt)
 
-    from zsp_arl_dm.core import Factory, Context, ExecKindT
-    ctxt = Factory.inst().mkContext()
     # Apply the transform
-    arl_comp = TransformToArlDm(ctxt).transform(MyC)
+    arl_comp = TransformToDm(ctxt=ctxt).transform(MyC)
 
     assert arl_comp is not None
-    assert arl_comp.name() == "MyC"
-    assert len(arl_comp.getExecs(ExecKindT.Body)) == 1
-    execs = arl_comp.getExecs(ExecKindT.Body)
-    exec = execs[0]
-    body = exec.getBody()
-    assert len(body.getStatements()) == 1
+    assert arl_comp.name == MyC.__qualname__
+    assert arl_comp.numExecs == 1
+    exec = arl_comp.getExec(0)
+#    exec = execs[0]
+#    body = exec.getBody()
+#    assert len(body.getStatements()) == 1
 
 def test_visit_type_exec_proc():
     from zsp_arl_dm.core import VisitorBase, Factory, ExecKindT

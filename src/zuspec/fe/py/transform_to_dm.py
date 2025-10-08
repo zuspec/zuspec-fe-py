@@ -17,8 +17,7 @@ import dataclasses as dc
 import inspect
 import zuspec.dataclasses as zdc
 from typing import List, Optional, cast
-from zuspec.dataclasses.api.visitor import Visitor
-from zuspec.dataclasses.ports import Input, Output
+from zuspec.dataclasses import Input, Output
 import zuspec.dm as dm
 from zuspec.dm import (
     Context, DataTypeComponent, Loc
@@ -26,6 +25,7 @@ from zuspec.dm import (
 from .context import Context, StructScope
 from .stmt_factory import StmtFactory
 from .type_factory import TypeFactory
+from .visitor import Visitor
 
 @dc.dataclass
 class TransformToDm(Visitor):

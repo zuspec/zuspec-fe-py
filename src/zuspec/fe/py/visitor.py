@@ -63,6 +63,7 @@ class Visitor(object):
         }
 
     def visit(self, t):
+        self._log.debug("--> visit: %s" % str(t))
         # Accept both class and instance
         t_cls = t if isinstance(t, type) else type(t)
         found = False
@@ -73,6 +74,7 @@ class Visitor(object):
                 break
         if not found:
             raise Exception("Unsupported class %s" % str(t))
+        self._log.debug("<-- visit: %s" % str(t))
 
     def visitComponentType(self, t):
         # Always work with the class, not the instance
@@ -124,12 +126,14 @@ class Visitor(object):
         return result
 
     def _visitFields(self, t : zdc.Struct):
-        print("--> visitFields")
+        self._log.debug("--> visitFields")
         for f in dc.fields(t):
-            print("Field: %s" % f.name)
+            self._log.debug("-- field: %s" % f.name)
             self._dispatchField(f)
+        self._log.debug("<-- visitFields")
 
     def _dispatchField(self, f : dc.Field):
+        self._log.debug("--> _dispatchField: %s" % f.name)
         if f.default_factory not in (None, dc.MISSING):
             if issubclass(f.default_factory, zdc.Input):
                 self.visitFieldInOut(f, False)
@@ -150,6 +154,7 @@ class Visitor(object):
         else:
             print("visitFieldClass: %s" % f, flush=True)
             self.visitFieldClass(f)
+        self._log.debug("<-- _dispatchField: %s" % f.name)
 
     def _visitExecs(self, t):
         exec_t = (
@@ -206,7 +211,9 @@ class Visitor(object):
         self.visitField(f)
 
     def visitFieldInOut(self, f : dc.Field, is_out : bool):
+        self._log.debug("--> visitFieldInOut: %s" % f.name)
         self.visitField(f)
+        self._log.debug("<-- visitFieldInOut: %s" % f.name)
 
     def visitFieldData(self, f : dc.Field):
         self.visitField(f)

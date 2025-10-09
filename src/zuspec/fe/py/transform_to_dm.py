@@ -15,8 +15,9 @@
 #****************************************************************************
 import dataclasses as dc
 import inspect
+import logging
 import zuspec.dataclasses as zdc
-from typing import List, Optional, cast
+from typing import ClassVar, List, Optional, cast
 from zuspec.dataclasses import Input, Output
 import zuspec.dm as dm
 from zuspec.dm import (
@@ -30,6 +31,7 @@ from .visitor import Visitor
 @dc.dataclass
 class TransformToDm(Visitor):
     ctxt : Optional[Context] = dc.field(default=None)
+    _log : ClassVar = logging.getLogger("zuspec.be.py.TransformToDm")
 
     def visitComponentType(self, t):
         # Always work with the class, not the instance
@@ -175,6 +177,7 @@ class TransformToDm(Visitor):
         pass
 
     def visitField(self, f):
+        self._log.debug("--> visitField: %s" % f.name)
         scope : StructScope = cast(StructScope, self.ctxt.scope)
 
         # TODO: gather binds from fields
@@ -202,6 +205,7 @@ class TransformToDm(Visitor):
             raise NotImplementedError(f"Port {f.name} (type {f.type}) not supported")
         
         scope.type.addField(field)
+        self._log.debug("<-- visitField: %s" % f.name)
         
     def _mkFieldInOut(self, f, data_t : dm.DataType) -> dm.TypeFieldInOut:
         field = self.ctxt().mkTypeFieldInOut(
@@ -211,11 +215,13 @@ class TransformToDm(Visitor):
         return field
 
     def transform(self, t : zdc.Component) -> DataTypeComponent:
+        self._log.debug("--> transform: %s" % str(t))
         if self.ctxt is None:
             raise Exception()
 
         self.visit(t)
         result = self.ctxt.result
+        self._log.debug("<-- transform: %s" % str(t))
         return cast(DataTypeComponent, result)
 
 

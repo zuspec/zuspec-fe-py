@@ -20,9 +20,7 @@ import zuspec.dataclasses as zdc
 from typing import ClassVar, List, Optional, cast
 from zuspec.dataclasses import Input, Output
 import zuspec.dm as dm
-from zuspec.dm import (
-    Context, DataTypeComponent, Loc
-)
+from zuspec.dm import (DataTypeComponent, Loc)
 from .context import Context, StructScope
 from .stmt_factory import StmtFactory
 from .type_factory import TypeFactory
@@ -32,6 +30,10 @@ from .visitor import Visitor
 class TransformToDm(Visitor):
     ctxt : Optional[Context] = dc.field(default=None)
     _log : ClassVar = logging.getLogger("zuspec.be.py.TransformToDm")
+
+    def __post_init__(self):
+        super().__post_init__()
+        assert self.ctxt is not None
 
     def visitComponentType(self, t):
         # Always work with the class, not the instance
@@ -43,7 +45,7 @@ class TransformToDm(Visitor):
         self.ctxt.push_scope(StructScope(scope=t, type=comp_t))
 
         # Call base Visitor logic to ensure visitExec is called
-        super().visitComponentType(t)
+        self.visitStructType(cast(zdc.Struct, t))
 
         # Explicitly call visitExec for @sync methods
         from zuspec.dataclasses.annotation import AnnotationSync
@@ -54,6 +56,25 @@ class TransformToDm(Visitor):
         
         self.ctxt.pop_scope()
         self.ctxt.setResult(comp_t)
+
+    def visitStructType(self, t : zdc.Struct):
+        self._visitFields(t)
+        self._visitExecs(t)
+        
+        for f in dir(t):
+            o = getattr(t, f)
+#             if callable(o) and hasattr(o, Annotation.NAME):
+#                 # Extract source code of the method
+#                 try:
+#                     src = inspect.getsource(o)
+#                     src = textwrap.dedent(src)
+#                     tree = ast.parse(src)
+#                     for stmt in tree.body[0].body:  # tree.body[0] is the FunctionDef
+#                         self.visit_statement(stmt)
+#                 except Exception as e:
+#                     print(f"Could not process method {f}: {e}")
+# #                self.visitExec(f, o)
+# #                print("Found")
 
     def visitExec(self, m):
         # Called for methods decorated with @zdc.sync
@@ -141,9 +162,10 @@ class TransformToDm(Visitor):
         exec_proc = self.ctxt().mkTypeExecProc(ExecKindT.Body, body)
         self.comp.addExec(exec_proc)
 
-    def visitExecSync(self, e):
+    def visitExecSync(self, e : zdc.ExecSync):
         import inspect
         import ast
+        from .static_path_mock import StaticPathMock
         from zsp_arl_dm.core import ExecKindT
 
         import textwrap
@@ -153,9 +175,19 @@ class TransformToDm(Visitor):
 
         scope : StructScope = cast(StructScope, self.ctxt.scope)
 
+        clock_r = e.clock(StaticPathMock(self.ctxt, scope.scope))
+        reset_r = e.clock(StaticPathMock(self.ctxt, scope.scope))
+
+        if not isinstance(clock_r, StaticPathMock) or clock_r.expr is None:
+            raise Exception("Clock is not a static ref (%s)" % str(clock_r))
+
+        if not isinstance(reset_r, StaticPathMock) or reset_r.expr is None:
+            raise Exception("Reset is not a static ref (%s)" % str(reset_r))
+
         # TODO: Convert lambda expressions to ref expressions
-        clock = None
-        reset = None
+
+        clock = clock_r.expr
+        reset = reset_r.expr
 
         file = e.method.__code__.co_filename
         line = e.method.__code__.co_firstlineno
@@ -172,9 +204,6 @@ class TransformToDm(Visitor):
             print("Stmt: %s" % stmt)
 
         scope.type.addExec(exec)
-
-
-        pass
 
     def visitField(self, f):
         self._log.debug("--> visitField: %s" % f.name)
@@ -213,6 +242,39 @@ class TransformToDm(Visitor):
             data_t,
             issubclass(f.default_factory, Output))
         return field
+    
+    def _visitExecs(self, t):
+        exec_t = (
+            (zdc.ExecSync, self.visitExecSync),
+            (zdc.Exec, self.visitExec)
+        )
+        for n in dir(t):
+            o = getattr(t, n)
+            for et, em in exec_t:
+                if isinstance(o, et):
+                    em(o)
+                    break
+
+    def _visitDataType(self, t):
+
+        if t == int:
+            self.visitDataTypeInt()
+        elif type(t) is type:
+            zsp_base_t = (
+                (zdc.Component, self.visitDataTypeComponent),
+            )
+
+            v = None
+            for tt,vv in zsp_base_t:
+                print("t: %s tt: %s vv: %s" % (t, tt, vv))
+                if issubclass(t, tt):
+                    v = vv
+                    break
+            
+            v(t)
+        else:
+            raise Exception("Unknown type %s" % str(t))
+        pass
 
     def transform(self, t : zdc.Component) -> DataTypeComponent:
         self._log.debug("--> transform: %s" % str(t))

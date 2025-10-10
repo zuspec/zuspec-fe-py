@@ -76,12 +76,6 @@ class Visitor(object):
             raise Exception("Unsupported class %s" % str(t))
         self._log.debug("<-- visit: %s" % str(t))
 
-    def visitComponentType(self, t):
-        # Always work with the class, not the instance
-        t_cls = t if isinstance(t, type) else type(t)
-        self.visitStructType(t_cls)
-        pass
-
     def _elabBindPath(self, path_lambda, root_type):
         """
         Processes a lambda expression returning a single property path.
@@ -156,17 +150,7 @@ class Visitor(object):
             self.visitFieldClass(f)
         self._log.debug("<-- _dispatchField: %s" % f.name)
 
-    def _visitExecs(self, t):
-        exec_t = (
-            (zdc.ExecSync, self.visitExecSync),
-            (zdc.Exec, self.visitExec)
-        )
-        for n in dir(t):
-            o = getattr(t, n)
-            for et, em in exec_t:
-                if isinstance(o, et):
-                    em(o)
-                    break
+
 
     def _visitFunctions(self, t):
         for e in dir(t):
@@ -175,27 +159,6 @@ class Visitor(object):
                 self.visitFunction(getattr(t, e))
 
     def visitFunction(self, f):
-        pass
-
-    def _visitDataType(self, t):
-
-        if t == int:
-            self.visitDataTypeInt()
-        elif type(t) is type:
-            zsp_base_t = (
-                (Component, self.visitDataTypeComponent),
-            )
-
-            v = None
-            for tt,vv in zsp_base_t:
-                print("t: %s tt: %s vv: %s" % (t, tt, vv))
-                if issubclass(t, tt):
-                    v = vv
-                    break
-            
-            v(t)
-        else:
-            raise Exception("Unknown type %s" % str(t))
         pass
 
     def visitDataTypeComponent(self, t):
@@ -218,25 +181,6 @@ class Visitor(object):
     def visitFieldData(self, f : dc.Field):
         self.visitField(f)
         self._visitDataType(f.type)
-
-    def visitStructType(self, t : zdc.Struct):
-        self._visitFields(t)
-        self._visitExecs(t)
-        
-        for f in dir(t):
-            o = getattr(t, f)
-#             if callable(o) and hasattr(o, Annotation.NAME):
-#                 # Extract source code of the method
-#                 try:
-#                     src = inspect.getsource(o)
-#                     src = textwrap.dedent(src)
-#                     tree = ast.parse(src)
-#                     for stmt in tree.body[0].body:  # tree.body[0] is the FunctionDef
-#                         self.visit_statement(stmt)
-#                 except Exception as e:
-#                     print(f"Could not process method {f}: {e}")
-# #                self.visitExec(f, o)
-# #                print("Found")
 
     def _findFieldRefs(self, t : zdc.Struct, method) -> List[Tuple[bool,dc.Field,Tuple[str]]]:
         """
@@ -288,12 +232,6 @@ class Visitor(object):
                 unique_refs.append(ref)
                 seen.add(key)
         return unique_refs
-
-    def visitExec(self, e : zdc.Exec):
-        pass
-
-    def visitExecSync(self, e : zdc.ExecSync):
-        self.visitExec(e)
 
     def visitFieldExtern(self, f : dc.Field):
         pass

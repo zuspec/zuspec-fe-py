@@ -6,16 +6,13 @@ from zuspec.fe.py import Context, TransformToDm
 
 def test_smoke():
 
-    def bind(T):
-        return T
-
     @zdc.dataclass
     class MyC(zdc.Component):
         clock : zdc.Bit = zdc.input()
         reset : zdc.Bit = zdc.input()
         count : zdc.Bit[32] = zdc.output()
 
-        @zdc.sync(clock=lambda s: s.clock, reset=lambda s:s.reset)
+        @zdc.sync(clock=lambda s:s.clock, reset=lambda s:s.reset)
         def abc(self):
             if self.reset:
                 self.count = 0
@@ -26,12 +23,16 @@ def test_smoke():
     ctxt = Context(ctxt=dm_ctxt)
 
     # Apply the transform
-    arl_comp = TransformToDm(ctxt=ctxt).transform(MyC)
+    comp_dm = TransformToDm(ctxt=ctxt).transform(MyC)
 
-    assert arl_comp is not None
-    assert arl_comp.name == MyC.__qualname__
-    assert arl_comp.numExecs == 1
-    exec = arl_comp.getExec(0)
+    assert comp_dm is not None
+    assert comp_dm.name == MyC.__qualname__
+    assert comp_dm.numExecs == 1
+    exec = comp_dm.getExec(0)
+    assert hasattr(exec, "clock")
+    assert hasattr(exec, "reset")
+    assert exec.clock is not None
+    assert exec.reset is not None
 #    exec = execs[0]
 #    body = exec.getBody()
 #    assert len(body.getStatements()) == 1

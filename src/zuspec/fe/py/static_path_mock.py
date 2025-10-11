@@ -21,7 +21,7 @@ class StaticPathMock(object):
         if name not in fields:
             raise AttributeError(f"Invalid field '{name}' in path")
         
-        root = self.expr if self.expr is not None else self.ctxt().mkTypeExprRefTopDown("")
+        root = self.expr if self.expr is not None else self.ctxt().mkTypeExprRefSelf()
 
         # Find the field offset and type
         idx, field_type = next((i,f) for i,f in enumerate(dc.fields(self.typ)) if f.name == name)

@@ -163,10 +163,10 @@ class TransformToDm(Visitor):
         self.comp.addExec(exec_proc)
 
     def visitExecSync(self, e : zdc.ExecSync):
+        self._log.debug("--> visitExecSync")
         import inspect
         import ast
         from .static_path_mock import StaticPathMock
-        from zsp_arl_dm.core import ExecKindT
 
         import textwrap
         src = inspect.getsource(e.method)
@@ -176,7 +176,7 @@ class TransformToDm(Visitor):
         scope : StructScope = cast(StructScope, self.ctxt.scope)
 
         clock_r = e.clock(StaticPathMock(self.ctxt, scope.scope))
-        reset_r = e.clock(StaticPathMock(self.ctxt, scope.scope))
+        reset_r = e.reset(StaticPathMock(self.ctxt, scope.scope))
 
         if not isinstance(clock_r, StaticPathMock) or clock_r.expr is None:
             raise Exception("Clock is not a static ref (%s)" % str(clock_r))
@@ -189,12 +189,15 @@ class TransformToDm(Visitor):
         clock = clock_r.expr
         reset = reset_r.expr
 
+        self._log.debug("method: %s" % str(e.method))
+
         file = e.method.__code__.co_filename
         line = e.method.__code__.co_firstlineno
         pos = -1
         exec = self.ctxt().mkExecSync(
             clock,
             reset,
+            ref=e.method,
             loc=Loc(file=file, line=line, ref=e.method)
         )
 
@@ -204,6 +207,7 @@ class TransformToDm(Visitor):
             print("Stmt: %s" % stmt)
 
         scope.type.addExec(exec)
+        self._log.debug("<-- visitExecSync")
 
     def visitField(self, f):
         self._log.debug("--> visitField: %s" % f.name)
@@ -244,6 +248,7 @@ class TransformToDm(Visitor):
         return field
     
     def _visitExecs(self, t):
+        self._log.debug("--> _visitExecs")
         exec_t = (
             (zdc.ExecSync, self.visitExecSync),
             (zdc.Exec, self.visitExec)
@@ -254,6 +259,7 @@ class TransformToDm(Visitor):
                 if isinstance(o, et):
                     em(o)
                     break
+        self._log.debug("<-- _visitExecs")
 
     def _visitDataType(self, t):
 
